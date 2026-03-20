@@ -67,6 +67,7 @@ docker compose up -d --build
 
 
 ```
+
 ai-edu-hub/
 ├── app/
 │   ├── api/          # Định tuyến các API (routes, dependencies)
