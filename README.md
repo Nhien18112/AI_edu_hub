@@ -51,23 +51,25 @@ AI Edu Hub là một nền tảng Công nghệ Giáo dục (EdTech) mã nguồn 
 ### 2. Cài đặt biến môi trường
 Tạo một file có tên `.env` ở thư mục gốc của dự án (ngang hàng với `docker-compose.yml`) và thêm API Key của bạn vào:
 
-```
-env
+```env
 GROQ_API_KEY=gsk_your_api_key_here...
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
 COLLECTION_NAME=ai_edu_collection
 CHUNK_SIZE=1000
 CHUNK_OVERLAP=200
-
-3. Khởi chạy hệ thống bằng Docker
-Mở Terminal tại thư mục dự án và gõ lệnh sau để tải các model và khởi động toàn bộ hệ thống:
-
-docker compose up -d --build
-
-
 ```
 
+### 3. Khởi chạy hệ thống bằng Docker
+Mở Terminal tại thư mục dự án và gõ lệnh sau để tải các model và khởi động toàn bộ hệ thống:
+
+```bash
+docker compose up -d --build
+```
+
+## 📁 Cấu trúc thư mục
+
+```
 ai-edu-hub/
 ├── app/
 │   ├── api/          # Định tuyến các API (routes, dependencies)
@@ -82,3 +84,4 @@ ai-edu-hub/
 ├── docker-compose.yml# File điều phối các container
 ├── Dockerfile        # File đóng gói Backend
 └── requirements.txt  # Danh sách thư viện Python
+```
