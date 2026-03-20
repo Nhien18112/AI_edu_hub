@@ -1,0 +1,27 @@
+# --- Cốt lõi Web API ---
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9      # Bắt buộc phải có để FastAPI nhận file PDF upload
+pydantic-settings==2.2.1     # Quản lý biến môi trường (.env) chuyên nghiệp
+
+# --- Xử lý Data & Chunking ---
+PyMuPDF==1.24.0              # Thư viện đọc và bóc tách text từ PDF cực nhanh
+tiktoken==0.6.0              # Tokenizer chuẩn (giống cách OpenAI đếm token)
+langchain-text-splitters==0.0.1 # Công cụ chia chunk cực xịn từ Langchain
+
+# --- Vector Database ---
+qdrant-client==1.8.0         # Giao tiếp với Qdrant DB
+
+# --- LLM Integration ---
+langchain-google-genai==1.0.1 
+langchain-community==0.0.29
+langchain-core==0.1.42
+fastembed
+
+groq
+httpx==0.27.2
+pytesseract==0.3.10
+pdf2image==1.17.0
+python-pptx==0.6.23
+youtube-transcript-api==0.6.1
+yt-dlp

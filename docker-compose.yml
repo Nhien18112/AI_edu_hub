@@ -1,0 +1,43 @@
+# Kịch bản khởi chạy đồng thời: FastAPI (Backend) + Qdrant (Vector DB) + React (Frontend)
+version: '3.8'
+
+services:
+  # 1. Service cho Vector Database (Qdrant)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_db
+    ports:
+      - "6333:6333" # Port gọi API REST của Qdrant
+      - "6334:6334" # Port gRPC (nhanh hơn, qdrant-client dùng cái này)
+    volumes:
+      # Mount ổ cứng: Lưu data thật vào thư mục qdrant_data trên máy bạn
+      # Để khi tắt Docker, Vector DB không bị mất trắng
+      - ./qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # 2. Service cho Backend FastAPI của bạn
+  api:
+    build: .
+    container_name: ai_edu_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Tính năng "Live Reload": Khi bạn sửa code trong thư mục app/, 
+      # server sẽ tự cập nhật mà không cần build lại Docker
+      - ./app:/code/app
+      - ./data_uploads:/code/data_uploads
+    env_file:
+      - .env # Load các biến môi trường (API Key, URL...)
+    depends_on:
+      - qdrant # Bắt buộc Qdrant phải chạy lên trước thì API mới được chạy
+    restart: unless-stopped
+
+  # 3. Service cho Frontend React
+  frontend:
+    build: ./frontend
+    container_name: ai_edu_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped

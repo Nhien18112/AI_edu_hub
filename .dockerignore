@@ -1,0 +1,17 @@
+# Chặn Docker copy các file không cần thiết vào image để image nhẹ hơn
+.git
+.gitignore
+.env
+.env.local
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+dist
+build
+.venv
+.DS_Store
+*.log
+README.md

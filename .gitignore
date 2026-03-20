@@ -1,0 +1,18 @@
+# Chặn Git commit các file rác, .env, hoặc thư mục data
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+data_uploads/
+qdrant_data/
+.DS_Store
+*.log
