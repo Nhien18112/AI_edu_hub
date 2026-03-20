@@ -65,6 +65,7 @@ Mở Terminal tại thư mục dự án và gõ lệnh sau để tải các mode
 
 docker compose up -d --build
 
+
 ```
 ai-edu-hub/
 ├── app/
