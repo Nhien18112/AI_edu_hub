@@ -67,3 +67,108 @@ TÀI LIỆU CUNG CẤP CHUYÊN SÂU:
     except Exception as e:
         error_json = {"quiz": [], "error": f"Lỗi từ Groq API: {str(e)}"}
         return json.dumps(error_json, ensure_ascii=False)
+
+
+def generate_learning_path(context: str, goal: str, level_count: int = 6) -> str:
+        system_prompt = f"""Bạn là kiến trúc sư học tập chuyên thiết kế lộ trình học dạng game hóa.
+Mục tiêu: tạo lộ trình học theo phong cách từng chặng như Duolingo (nhưng nội dung học thuật), dựa hoàn toàn trên tài liệu đã cung cấp.
+
+Yêu cầu:
+- Trả về JSON object hợp lệ, không có văn bản ngoài JSON.
+- Số chặng (levels) đúng bằng {level_count}.
+- Mỗi chặng có: mã chặng, tên chặng, mục tiêu, danh sách bài học, bài luyện tập, tiêu chí qua chặng.
+- Các bài học phải tăng dần độ khó.
+- Viết tiếng Việt rõ ràng, ngắn gọn, hành động cụ thể.
+
+Schema JSON bắt buộc:
+{{
+    "goal": "...",
+    "overview": "...",
+    "levels": [
+        {{
+            "level": 1,
+            "title": "...",
+            "objective": "...",
+            "lessons": ["...", "..."],
+            "practice": "...",
+            "pass_criteria": "..."
+        }}
+    ],
+    "capstone": "..."
+}}
+
+Mục tiêu người học:
+{goal}
+
+Tài liệu nguồn:
+{context}
+"""
+
+        messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "Hãy tạo lộ trình học ngay bây giờ."},
+        ]
+
+        try:
+                chat_completion = client.chat.completions.create(
+                        messages=messages,
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                )
+                return chat_completion.choices[0].message.content
+        except Exception as e:
+                error_json = {"goal": goal, "overview": "", "levels": [], "capstone": "", "error": str(e)}
+                return json.dumps(error_json, ensure_ascii=False)
+
+
+def generate_mindmap(context: str, topic: str) -> str:
+        system_prompt = f"""Bạn là chuyên gia xây dựng mindmap học tập.
+Nhiệm vụ: từ tài liệu nguồn, tạo mindmap rõ ràng theo chủ đề người dùng yêu cầu.
+
+Yêu cầu bắt buộc:
+- Chỉ trả về JSON object hợp lệ, không thêm văn bản ngoài JSON.
+- Viết tiếng Việt có dấu đầy đủ.
+- Cấu trúc mindmap dễ đọc, phân cấp từ tổng quan đến chi tiết.
+
+Schema JSON bắt buộc:
+{{
+    "topic": "...",
+    "summary": "...",
+    "branches": [
+        {{
+            "title": "...",
+            "details": ["...", "..."],
+            "sub_branches": [
+                {{
+                    "title": "...",
+                    "details": ["...", "..."]
+                }}
+            ]
+        }}
+    ]
+}}
+
+Chủ đề:
+{topic}
+
+Tài liệu nguồn:
+{context}
+"""
+
+        messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "Hãy tạo mindmap ngay bây giờ theo đúng schema JSON."},
+        ]
+
+        try:
+                chat_completion = client.chat.completions.create(
+                        messages=messages,
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                )
+                return chat_completion.choices[0].message.content
+        except Exception as e:
+                error_json = {"topic": topic, "summary": "", "branches": [], "error": str(e)}
+                return json.dumps(error_json, ensure_ascii=False)

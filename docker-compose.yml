@@ -1,4 +1,4 @@
-# Kịch bản khởi chạy đồng thời: FastAPI (Backend) + Qdrant (Vector DB) + React (Frontend)
+# Kịch bản khởi chạy: FastAPI (Backend API) + Qdrant (Vector DB) + React Frontend
 version: '3.8'
 
 services:

@@ -1,58 +1,40 @@
+# AI Edu Hub
 
-Backend thì chạy bằng docker 
-Sau đó chạy FE bằng lệnh: 
-streamlit run frontend/app.py
+AI Edu Hub là hệ thống RAG cho học tập với kiến trúc tách riêng:
+- Backend API: FastAPI + Qdrant
+- Frontend: React (Vite)
 
+Hệ thống tập trung vào 3 chức năng chính:
+1. Upload và xử lý tài liệu (PDF/PPTX) theo nền (background job)
+2. Chat theo đúng tài liệu đã chọn
+3. Tạo quiz theo đúng tài liệu đã chọn
 
-# 📚 AI Edu Hub - Trợ lý Học tập Thông minh (Advanced RAG System)
+## Tính năng chính
 
-AI Edu Hub là một nền tảng Công nghệ Giáo dục (EdTech) mã nguồn mở, sử dụng kiến trúc **Advanced RAG (Retrieval-Augmented Generation)**. Dự án cho phép sinh viên tải lên các tài liệu học tập đa phương tiện (PDF, Slide, Video YouTube) và tương tác trực tiếp với Trợ lý AI để giải đáp thắc mắc, tóm tắt kiến thức, và tự động sinh bài tập trắc nghiệm ôn tập.
+- Chỉ hỏi đáp theo tài liệu được chọn, tránh ngữ cảnh lẫn lộn
+- Xóa tài liệu trên UI sẽ xóa luôn dữ liệu vector trong Qdrant
+- Theo dõi tiến trình xử lý tài liệu theo thời gian thực (queued/processing/completed/failed)
+- Giao diện React hiện đại, responsive, dùng tiếng Việt có dấu
 
----
+## Công nghệ
 
-## ✨ Tính năng nổi bật
+### Backend
+- FastAPI
+- Qdrant
+- FastEmbed + reranker
+- LangChain text splitter
 
-* 📄 **Đọc hiểu Đa phương tiện:** Hỗ trợ trích xuất văn bản từ file PDF, bài giảng PowerPoint (PPTX), và đặc biệt là bóc băng phụ đề tự động từ Video YouTube (thông qua Jina Reader API).
-* 🧠 **Chatbot AI Siêu việt:** Tích hợp mô hình ngôn ngữ lớn Llama 3 (70 tỷ tham số) qua Groq API, mang lại tốc độ phản hồi gần như tức thời và khả năng lập luận logic sắc bén.
-* 🎯 **Tìm kiếm Chính xác Tuyệt đối (Advanced RAG):** * *Giai đoạn 1 (Broad Search):* Tìm kiếm ngữ nghĩa thô (Semantic Search) bằng Vector Database **Qdrant** siêu tốc.
-    * *Giai đoạn 2 (Reranking):* Sử dụng mô hình **Cross-Encoder** (`ms-marco-MiniLM-L-6-v2` qua `fastembed`) chạy hoàn toàn trên CPU để chấm điểm logic chéo, loại bỏ kết quả rác và đưa ra câu trả lời chuẩn xác nhất.
-* 📝 **Tự động Sinh Trắc Nghiệm:** Sử dụng kỹ thuật Prompt Engineering (JSON Mode) để ép AI tự động đọc tài liệu và soạn ra các bài kiểm tra trắc nghiệm tương tác trực tiếp trên giao diện.
-* 🎨 **Giao diện Hiện đại:** Xây dựng bằng Streamlit với các hiệu ứng CSS tùy chỉnh, mang lại trải nghiệm UX/UI chuyên nghiệp như các sản phẩm thương mại.
+### Frontend
+- React 18
+- Vite
+- Nginx (serve bản build frontend trong Docker)
 
----
+## Cài đặt biến môi trường
 
-## 🛠️ Công nghệ sử dụng (Tech Stack)
-
-**Backend:**
-* [FastAPI](https://fastapi.tiangolo.com/): Khung web server hiệu năng cao.
-* [Qdrant](https://qdrant.tech/): Cơ sở dữ liệu Vector (Vector Database) lưu trữ trí nhớ dài hạn.
-* [FastEmbed](https://qdrant.github.io/fastembed/): Thư viện nhúng Vector và Reranking siêu nhẹ, tối ưu cho CPU.
-* [LangChain](https://www.langchain.com/): Tiện ích chia nhỏ văn bản (Text Splitter).
-
-**Frontend:**
-* [Streamlit](https://streamlit.io/): Framework xây dựng giao diện tương tác tức thì bằng Python.
-
-**AI Models:**
-* **LLM:** `llama-3.3-70b-versatile` (via Groq API).
-* **Embeddings:** `fast-bge-small-en-v1.5` (mặc định của FastEmbed).
-* **Reranker:** `Xenova/ms-marco-MiniLM-L-6-v2`.
-
-**DevOps:**
-* [Docker & Docker Compose](https://www.docker.com/): Đóng gói và triển khai ứng dụng độc lập.
-
----
-
-## 🚀 Hướng dẫn Cài đặt & Chạy dự án (Local)
-
-### 1. Yêu cầu hệ thống
-* Cài đặt sẵn [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-* Có tài khoản và API Key của [Groq](https://console.groq.com/keys) (Miễn phí).
-
-### 2. Cài đặt biến môi trường
-Tạo một file có tên `.env` ở thư mục gốc của dự án (ngang hàng với `docker-compose.yml`) và thêm API Key của bạn vào:
+Tạo file `.env` cùng cấp với `docker-compose.yml`:
 
 ```env
-GROQ_API_KEY=gsk_your_api_key_here...
+GROQ_API_KEY=gsk_your_api_key_here
 QDRANT_HOST=qdrant
 QDRANT_PORT=6333
 COLLECTION_NAME=ai_edu_collection
@@ -60,28 +42,27 @@ CHUNK_SIZE=1000
 CHUNK_OVERLAP=200
 ```
 
-### 3. Khởi chạy hệ thống bằng Docker
-Mở Terminal tại thư mục dự án và gõ lệnh sau để tải các model và khởi động toàn bộ hệ thống:
+## Chạy bằng Docker
 
 ```bash
 docker compose up -d --build
 ```
 
-## 📁 Cấu trúc thư mục
+## Truy cập
 
-```
-ai-edu-hub/
-├── app/
-│   ├── api/          # Định tuyến các API (routes, dependencies)
-│   ├── core/         # Cấu hình biến môi trường (config)
-│   ├── models/       # Định nghĩa Pydantic schemas
-│   └── services/     # Logic xử lý cốt lõi (PDF, YouTube, Qdrant, LLM)
-├── frontend/
-│   └── app.py        # Giao diện Streamlit & Custom CSS
-├── data_uploads/     # Thư mục tạm chứa file người dùng tải lên
-├── qdrant_data/      # Thư mục map volume lưu trữ Vector Database
-├── .env              # File bảo mật chứa API Key
-├── docker-compose.yml# File điều phối các container
-├── Dockerfile        # File đóng gói Backend
-└── requirements.txt  # Danh sách thư viện Python
-```
+- Frontend React: http://localhost:3000
+- Backend API: http://localhost:8000
+- Swagger docs: http://localhost:8000/docs
+
+## Luồng sử dụng
+
+1. Vào tab Upload để tải PDF/PPTX
+2. Theo dõi job xử lý trong hàng đợi
+3. Chọn tài liệu ở sidebar
+4. Vào tab Chat để hỏi đáp theo tài liệu đó
+5. Vào tab Quiz để tạo và làm bài quiz theo tài liệu đó
+
+## Lưu ý
+
+- Chức năng ingest từ link YouTube đã được loại bỏ để đảm bảo tính ổn định.
+- Nếu bạn muốn ingest video, khuyến nghị workflow ổn định hơn là upload file transcript `.txt` hoặc `.srt` trực tiếp (có thể bổ sung trong phiên bản tiếp theo).

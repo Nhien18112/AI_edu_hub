@@ -12,7 +12,6 @@ build/
 .venv/
 venv/
 env/
-data_uploads/
 qdrant_data/
 .DS_Store
 *.log

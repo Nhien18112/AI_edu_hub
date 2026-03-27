@@ -28,6 +28,15 @@ app.include_router(router, prefix="/api/v1")
 @app.get("/")
 def read_root():
     return {
+        "message": "AI Edu Hub API đang chạy",
+        "docs_url": "/docs",
+        "frontend_url": "http://localhost:3000"
+    }
+
+
+@app.get("/health")
+def health_check():
+    return {
         "message": "AI Edu Hub đang chạy!", 
         "docs_url": "Truy cập /docs để mở giao diện test API (Swagger UI)"
     }

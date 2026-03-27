@@ -5,14 +5,12 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /code
 
-# Cài đặt các thư viện hệ điều hành cho OCR (Tesseract và Poppler) + yt-dlp + Whisper
+# Cài đặt các thư viện hệ điều hành cho OCR (Tesseract và Poppler)
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-vie \
     tesseract-ocr-eng \
     poppler-utils \
-    ffmpeg \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ./requirements.txt /code/requirements.txt
