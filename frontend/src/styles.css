@@ -54,6 +54,11 @@ body {
   gap: 14px;
 }
 
+.layout.mindmap-only {
+  width: min(1820px, calc(100vw - 32px));
+  grid-template-columns: 1fr;
+}
+
 .card {
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -190,6 +195,10 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   display: grid;
   gap: 12px;
   grid-template-rows: auto 1fr;
+}
+
+.content.mindmap-only-content {
+  min-height: calc(100vh - 24px);
 }
 
 .nav-card { padding: 12px; }
@@ -534,6 +543,16 @@ nav button.active {
   margin-top: 14px;
 }
 
+.mindmap-tab-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mindmap-wide .mindmap-output {
+  min-height: 62vh;
+}
+
 .mindmap-diagram {
   margin-top: 10px;
   border: 1px solid var(--line);
@@ -547,6 +566,14 @@ nav button.active {
   min-width: 720px;
   width: 100%;
   height: auto;
+}
+
+.mindmap-wide .mindmap-diagram {
+  min-height: 66vh;
+}
+
+.mindmap-wide .mindmap-diagram svg {
+  min-width: 1200px;
 }
 
 .mindmap-fallback {

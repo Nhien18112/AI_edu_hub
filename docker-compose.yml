@@ -1,5 +1,4 @@
 # Kịch bản khởi chạy: FastAPI (Backend API) + Qdrant (Vector DB) + React Frontend
-version: '3.8'
 
 services:
   # 1. Service cho Vector Database (Qdrant)
@@ -30,6 +29,12 @@ services:
       - .env # Load các biến môi trường (API Key, URL...)
     depends_on:
       - qdrant # Bắt buộc Qdrant phải chạy lên trước thì API mới được chạy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
 
   # 3. Service cho Frontend React
@@ -39,5 +44,6 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped

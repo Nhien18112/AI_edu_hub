@@ -138,6 +138,30 @@ def _serialize_sources(search_results):
     return serialized
 
 
+def _build_grounded_context(search_results, *, max_chunks: int = 14, max_chars_per_chunk: int = 1200) -> str:
+    lines = []
+    for idx, doc in enumerate(search_results[:max_chunks], start=1):
+        payload = doc.payload or {}
+        text = (payload.get("text") or "").strip()
+        if not text:
+            continue
+
+        compact_text = " ".join(text.split())
+        excerpt = compact_text[:max_chars_per_chunk]
+        if len(compact_text) > max_chars_per_chunk:
+            excerpt += " ..."
+
+        filename = payload.get("filename", "Unknown")
+        document_id = payload.get("document_id", "Unknown")
+        score = float(getattr(doc, "score", 0.0))
+
+        lines.append(
+            f"[Nguồn {idx}] file={filename}; document_id={document_id}; relevance={score:.4f}\n{excerpt}"
+        )
+
+    return "\n\n".join(lines)
+
+
 def _process_document_job(job_id: str, file_path: str, filename: str, file_ext: str) -> None:
     try:
         _update_job(job_id, status="processing", progress=15, message="Đang trích xuất nội dung tài liệu.")
@@ -354,19 +378,52 @@ async def create_mindmap(request: MindmapRequest):
         if not request.document_ids:
             raise HTTPException(status_code=400, detail="Bạn cần chọn ít nhất một tài liệu để tạo mindmap.")
 
-        search_results = search_documents_multi(
-            query=request.topic,
-            document_ids=request.document_ids,
-            top_k=12,
-        )
+        collected_results = []
+        for doc_id in request.document_ids:
+            collected_results.extend(
+                search_documents(
+                    query=request.topic,
+                    document_id=doc_id,
+                    top_k=6,
+                )
+            )
+
+        if not collected_results:
+            collected_results = search_documents_multi(
+                query=request.topic,
+                document_ids=request.document_ids,
+                top_k=12,
+            )
+
+        deduped = []
+        seen_keys = set()
+        for doc in collected_results:
+            payload = doc.payload or {}
+            key = (
+                payload.get("document_id"),
+                payload.get("filename"),
+                payload.get("text", "")[:240],
+            )
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped.append(doc)
+
+        deduped.sort(key=lambda item: float(getattr(item, "score", 0.0)), reverse=True)
+        search_results = deduped[:14]
+
         if not search_results:
             raise HTTPException(
                 status_code=404,
                 detail="Không tìm thấy nội dung phù hợp trong các tài liệu đã chọn.",
             )
 
-        context = "\n\n".join([doc.payload["text"] for doc in search_results])
-        map_json_string = generate_mindmap(context=context, topic=request.topic)
+        context = _build_grounded_context(search_results)
+        map_json_string = generate_mindmap(
+            context=context,
+            topic=request.topic,
+            selected_document_ids=request.document_ids,
+        )
 
         try:
             return json.loads(map_json_string)

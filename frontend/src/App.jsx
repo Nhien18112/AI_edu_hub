@@ -10,13 +10,70 @@ function formatTime(isoText) {
   return date.toLocaleString("vi-VN");
 }
 
+function normalizeApiError(value) {
+  if (!value) return "Yêu cầu thất bại";
+  if (typeof value === "string") return value;
+
+  if (Array.isArray(value)) {
+    const messages = value
+      .map((item) => normalizeApiError(item))
+      .filter(Boolean);
+    return messages.length ? messages.join(" | ") : "Yêu cầu thất bại";
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.message === "string" && value.message.trim()) return value.message;
+    if (typeof value.msg === "string" && value.msg.trim()) return value.msg;
+
+    const loc = Array.isArray(value.loc) ? ` (${value.loc.join(".")})` : "";
+    if (typeof value.type === "string" && value.type.trim()) {
+      return `${value.type}${loc}`;
+    }
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "Yêu cầu thất bại";
+    }
+  }
+
+  return String(value);
+}
+
+function ensureText(value, fallback = "") {
+  if (typeof value === "string") return value;
+  if (value == null) return fallback;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return normalizeApiError(value);
+}
+
 async function callApi(path, options = {}, timeoutMs = 20000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_BASE}${path}`, { ...options, signal: controller.signal });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "Yêu cầu thất bại");
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+    const isJson = contentType.includes("application/json");
+    const rawBody = await response.text();
+
+    if (!isJson) {
+      const shortBody = rawBody.slice(0, 120).replace(/\s+/g, " ").trim();
+      throw new Error(
+        `API trả về dữ liệu không phải JSON (HTTP ${response.status}). Nội dung nhận được: ${shortBody || "(rỗng)"}`
+      );
+    }
+
+    let data;
+    try {
+      data = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      throw new Error(`Phản hồi JSON không hợp lệ từ máy chủ (HTTP ${response.status}).`);
+    }
+
+    if (!response.ok) {
+      const detailText = normalizeApiError(data?.detail ?? data?.message ?? data);
+      throw new Error(detailText || `Yêu cầu thất bại (HTTP ${response.status})`);
+    }
     return data;
   } catch (error) {
     if (error.name === "AbortError") {
@@ -126,10 +183,15 @@ function MindmapDiagram({ mindmap }) {
 }
 
 export default function App() {
+  const mindmapOnlyMode = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("view") === "mindmap";
+  }, []);
+
   const uploadFormRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [tab, setTab] = useState("upload");
+  const [tab, setTab] = useState(mindmapOnlyMode ? "mindmap" : "upload");
   const [documents, setDocuments] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
@@ -224,6 +286,18 @@ export default function App() {
   useEffect(() => {
     Promise.all([loadDocuments(), loadJobs()]).catch((error) => setStatus(error.message, true));
   }, []);
+
+  useEffect(() => {
+    if (!statusError) return;
+
+    const retryTimer = setInterval(() => {
+      Promise.all([loadDocuments(), loadJobs()])
+        .then(() => setStatus("Đã kết nối lại máy chủ."))
+        .catch(() => undefined);
+    }, 3000);
+
+    return () => clearInterval(retryTimer);
+  }, [statusError]);
 
   useEffect(() => {
     if (!activeJobs.length) return;
@@ -375,8 +449,11 @@ export default function App() {
     }
     if (!question.trim()) return;
 
-    const userMsg = { role: "user", content: question, sources: [] };
-    const nextHistory = [...messages.map(({ role, content }) => ({ role, content })), userMsg];
+    const userMsg = { role: "user", content: ensureText(question), sources: [] };
+    const nextHistory = [
+      ...messages.map(({ role, content }) => ({ role, content: ensureText(content) })),
+      { role: "user", content: ensureText(question) },
+    ];
     setMessages((prev) => [...prev, userMsg]);
     setQuestion("");
     setAsking(true);
@@ -390,10 +467,11 @@ export default function App() {
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.answer || "Không có câu trả lời.", sources: data.sources || [] },
+        { role: "assistant", content: ensureText(data.answer, "Không có câu trả lời."), sources: data.sources || [] },
       ]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: "assistant", content: error.message, sources: [] }]);
+      const errorText = error instanceof Error ? error.message : "Đã xảy ra lỗi khi chat với máy chủ.";
+      setMessages((prev) => [...prev, { role: "assistant", content: ensureText(errorText), sources: [] }]);
     } finally {
       setAsking(false);
     }
@@ -512,7 +590,8 @@ export default function App() {
       <div className="bg-a" />
       <div className="bg-b" />
 
-      <main className="layout">
+      <main className={`layout ${mindmapOnlyMode ? "mindmap-only" : ""}`}>
+        {!mindmapOnlyMode && (
         <aside className="sidebar card">
           <div className="hero">
             <p className="eyebrow">AI EDU HUB</p>
@@ -560,16 +639,34 @@ export default function App() {
 
           <section className={`status ${statusError ? "error" : ""}`}>{statusText}</section>
         </aside>
+        )}
 
-        <section className="content">
+        <section className={`content ${mindmapOnlyMode ? "mindmap-only-content" : ""}`}>
           <header className="card nav-card">
-            <div className="ribbon">Document-first RAG • React hiện đại • Lộ trình học theo chặng</div>
+            <div className="ribbon">
+              {mindmapOnlyMode
+                ? "Mindmap Workspace • Không gian rộng để học bằng sơ đồ"
+                : "Document-first RAG • React hiện đại • Lộ trình học theo chặng"}
+            </div>
             <nav>
-              <button className={tab === "upload" ? "active" : ""} onClick={() => setTab("upload")}>Upload</button>
-              <button className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>Chat</button>
-              <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}>Quiz</button>
-              <button className={tab === "roadmap" ? "active" : ""} onClick={() => setTab("roadmap")}>Lộ trình</button>
-              <button className={tab === "mindmap" ? "active" : ""} onClick={() => setTab("mindmap")}>Mindmap</button>
+              {!mindmapOnlyMode && <button className={tab === "upload" ? "active" : ""} onClick={() => setTab("upload")}>Upload</button>}
+              {!mindmapOnlyMode && <button className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>Chat</button>}
+              {!mindmapOnlyMode && <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}>Quiz</button>}
+              {!mindmapOnlyMode && <button className={tab === "roadmap" ? "active" : ""} onClick={() => setTab("roadmap")}>Lộ trình</button>}
+              {!mindmapOnlyMode && (
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = "/?view=mindmap"; }}
+                >
+                  Mindmap
+                </button>
+              )}
+              {mindmapOnlyMode && <button className="active">Mindmap</button>}
+              {mindmapOnlyMode && (
+                <button type="button" onClick={() => { window.location.href = "/"; }}>
+                  Quay về dashboard
+                </button>
+              )}
             </nav>
           </header>
 
@@ -856,7 +953,7 @@ export default function App() {
           )}
 
           {tab === "mindmap" && (
-            <section className="card panel">
+            <section className={`card panel ${mindmapOnlyMode ? "mindmap-wide" : ""}`}>
               <p className="eyebrow">Module 5</p>
               <h2>Mindmap từ tài liệu đã xử lý</h2>
               <p className="context">Chọn nhiều tài liệu, nhập chủ đề, hệ thống sẽ tạo mindmap tổng hợp để học nhanh.</p>

@@ -122,14 +122,20 @@ Tài liệu nguồn:
                 return json.dumps(error_json, ensure_ascii=False)
 
 
-def generate_mindmap(context: str, topic: str) -> str:
-        system_prompt = f"""Bạn là chuyên gia xây dựng mindmap học tập.
+def generate_mindmap(context: str, topic: str, selected_document_ids: list[str] | None = None) -> str:
+    selected_docs_text = ", ".join(selected_document_ids or []) or "(không có)"
+    system_prompt = f"""Bạn là chuyên gia xây dựng mindmap học tập.
 Nhiệm vụ: từ tài liệu nguồn, tạo mindmap rõ ràng theo chủ đề người dùng yêu cầu.
+
+Bạn CHỈ được dùng dữ liệu trong phần "Tài liệu nguồn (đã truy hồi)" bên dưới.
+Không dùng kiến thức nền, không suy diễn ngoài tài liệu, không thêm ví dụ từ lĩnh vực không xuất hiện trong nguồn.
+Nếu dữ liệu không đủ để tạo nhánh hợp lệ, hãy trả về "branches": [] và nêu rõ trong "summary" rằng dữ liệu chưa đủ.
 
 Yêu cầu bắt buộc:
 - Chỉ trả về JSON object hợp lệ, không thêm văn bản ngoài JSON.
 - Viết tiếng Việt có dấu đầy đủ.
 - Cấu trúc mindmap dễ đọc, phân cấp từ tổng quan đến chi tiết.
+- Mỗi "details" phải bám sát ý có trong các đoạn trích nguồn.
 
 Schema JSON bắt buộc:
 {{
@@ -152,23 +158,26 @@ Schema JSON bắt buộc:
 Chủ đề:
 {topic}
 
-Tài liệu nguồn:
+Danh sách document_id được chọn:
+{selected_docs_text}
+
+Tài liệu nguồn (đã truy hồi):
 {context}
 """
 
-        messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "Hãy tạo mindmap ngay bây giờ theo đúng schema JSON."},
-        ]
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": "Hãy tạo mindmap ngay bây giờ theo đúng schema JSON."},
+    ]
 
-        try:
-                chat_completion = client.chat.completions.create(
-                        messages=messages,
-                        model="llama-3.3-70b-versatile",
-                        temperature=0.2,
-                        response_format={"type": "json_object"},
-                )
-                return chat_completion.choices[0].message.content
-        except Exception as e:
-                error_json = {"topic": topic, "summary": "", "branches": [], "error": str(e)}
-                return json.dumps(error_json, ensure_ascii=False)
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=messages,
+            model="llama-3.3-70b-versatile",
+            temperature=0.05,
+            response_format={"type": "json_object"},
+        )
+        return chat_completion.choices[0].message.content
+    except Exception as e:
+        error_json = {"topic": topic, "summary": "", "branches": [], "error": str(e)}
+        return json.dumps(error_json, ensure_ascii=False)
